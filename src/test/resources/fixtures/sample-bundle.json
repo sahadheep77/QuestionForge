@@ -1,0 +1,66 @@
+{
+  "targetMethod": {
+    "methodId": "com.example.service.OrderService#processOrder(Long)",
+    "signature": "public Order processOrder(Long orderId)",
+    "code": "public Order processOrder(Long orderId) {\n    Order order = orderRepository.findById(orderId);\n    if (order == null) {\n        throw new OrderNotFoundException(\"Order not found: \" + orderId);\n    }\n    paymentService.charge(orderId, order.getAmount());\n    order.setStatus(OrderStatus.PROCESSED);\n    return orderRepository.save(order);\n}",
+    "signatureOnly": false,
+    "hopDistance": 0,
+    "direction": "TARGET"
+  },
+  "enclosingClass": {
+    "classId": "com.example.service.OrderService",
+    "className": "OrderService",
+    "fields": [
+      "private final OrderRepository orderRepository;",
+      "private final PaymentService paymentService;"
+    ],
+    "methodSignatures": [
+      "public Order processOrder(Long orderId)",
+      "public void cancelOrder(Long orderId)"
+    ],
+    "sourceCode": "package com.example.service;\n\npublic class OrderService {\n    private final OrderRepository orderRepository;\n    private final PaymentService paymentService;\n}"
+  },
+  "callers": [
+    {
+      "methodId": "com.example.controller.OrderController#checkout(Long)",
+      "signature": "public ResponseEntity<Order> checkout(Long id)",
+      "code": "public ResponseEntity<Order> checkout(Long id) {\n    Order processed = orderService.processOrder(id);\n    return ResponseEntity.ok(processed);\n}",
+      "signatureOnly": false,
+      "hopDistance": 1,
+      "direction": "CALLER"
+    }
+  ],
+  "callees": [
+    {
+      "methodId": "com.example.service.PaymentService#charge(Long,BigDecimal)",
+      "signature": "public void charge(Long id, BigDecimal amount)",
+      "code": "public void charge(Long id, BigDecimal amount) {\n    // external gateway payment processing\n}",
+      "signatureOnly": false,
+      "hopDistance": 1,
+      "direction": "CALLEE"
+    },
+    {
+      "methodId": "com.example.repository.OrderRepository#findById(Long)",
+      "signature": "public Order findById(Long id)",
+      "code": null,
+      "signatureOnly": true,
+      "hopDistance": 1,
+      "direction": "CALLEE"
+    }
+  ],
+  "metadata": {
+    "filePath": "src/main/java/com/example/service/OrderService.java",
+    "startLine": 14,
+    "endLine": 45,
+    "repoRoot": "/path/to/cloned/repo"
+  },
+  "truncated": false,
+  "droppedItems": [
+    {
+      "methodId": "com.example.notification.EmailService#sendConfirmation(Long)",
+      "reason": "DROPPED_SIZE_LIMIT",
+      "hopDistance": 2
+    }
+  ],
+  "warnings": []
+}

@@ -1,0 +1,55 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "type": "DESIGN_RATIONALE",
+      "difficulty": "MEDIUM",
+      "text": "Why does processOrder execute paymentService.charge before updating the order status to PROCESSED and saving to orderRepository?",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    },
+    {
+      "id": "q2",
+      "type": "EDGE_CASE",
+      "difficulty": "MEDIUM",
+      "text": "In processOrder, what happens if orderRepository.findById returns null? How is that error handled?",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    },
+    {
+      "id": "q3",
+      "type": "FLOW",
+      "difficulty": "MEDIUM",
+      "text": "Explain how checkout in OrderController delegates to processOrder and handles the returned Order entity.",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    }
+  ],
+  "answerKeys": [
+    {
+      "questionId": "q1",
+      "keyPoints": [
+        "Ensures payment is successfully charged before recording order as PROCESSED",
+        "Prevents marking unpaid orders as processed in case charge throws an exception"
+      ],
+      "requiredSymbols": ["paymentService", "charge", "OrderStatus", "PROCESSED"],
+      "rationale": "Evaluates understanding of transaction boundaries and payment failure ordering"
+    },
+    {
+      "questionId": "q2",
+      "keyPoints": [
+        "Checks null explicitly and throws OrderNotFoundException",
+        "Halts execution so paymentService.charge is never invoked for invalid orders"
+      ],
+      "requiredSymbols": ["OrderNotFoundException", "orderRepository"],
+      "rationale": "Verifies guard clause and null safety comprehension"
+    },
+    {
+      "questionId": "q3",
+      "keyPoints": [
+        "OrderController.checkout receives orderId and calls orderService.processOrder",
+        "Wraps the processed Order in ResponseEntity.ok"
+      ],
+      "requiredSymbols": ["OrderController", "checkout", "ResponseEntity"],
+      "rationale": "Verifies understanding of caller-callee relationship across controller and service layers"
+    }
+  ],
+  "warnings": []
+}

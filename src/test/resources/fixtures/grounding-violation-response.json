@@ -1,0 +1,46 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "type": "DESIGN_RATIONALE",
+      "difficulty": "MEDIUM",
+      "text": "Why does EmailService sendConfirmation use the orderId?",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    },
+    {
+      "id": "q2",
+      "type": "EDGE_CASE",
+      "difficulty": "MEDIUM",
+      "text": "What happens inside findById when orderId is negative?",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    },
+    {
+      "id": "q3",
+      "type": "FLOW",
+      "difficulty": "MEDIUM",
+      "text": "Explain the flow from checkout to processOrder.",
+      "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
+    }
+  ],
+  "answerKeys": [
+    {
+      "questionId": "q1",
+      "keyPoints": ["Sends email notification"],
+      "requiredSymbols": ["EmailService", "sendConfirmation"],
+      "rationale": "Testing dropped item"
+    },
+    {
+      "questionId": "q2",
+      "keyPoints": ["Repository behavior"],
+      "requiredSymbols": ["findById"],
+      "rationale": "Testing signature-only method"
+    },
+    {
+      "questionId": "q3",
+      "keyPoints": ["Delegation"],
+      "requiredSymbols": ["OrderController"],
+      "rationale": "Flow"
+    }
+  ],
+  "warnings": []
+}
