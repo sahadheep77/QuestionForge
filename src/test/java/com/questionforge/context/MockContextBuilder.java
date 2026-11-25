@@ -6,9 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Default mock implementation of ContextBuilder for tests.
- */
+
 @Component
 public class MockContextBuilder implements ContextBuilder {
 
@@ -52,7 +50,7 @@ public class MockContextBuilder implements ContextBuilder {
             MethodNode callee1 = new MethodNode(
                 "com.example.service.PaymentService#charge(Long,BigDecimal)",
                 "public void charge(Long id, BigDecimal amount)",
-                "public void charge(Long id, BigDecimal amount) { /* charge logic */ }",
+                "public void charge(Long id, BigDecimal amount) {  }",
                 false,
                 1,
                 "CALLEE"
@@ -61,7 +59,7 @@ public class MockContextBuilder implements ContextBuilder {
             MethodNode callee2 = new MethodNode(
                 "com.example.repository.OrderRepository#findById(Long)",
                 "public Order findById(Long id)",
-                null, // signatureOnly
+                null,
                 true,
                 1,
                 "CALLEE"
@@ -85,6 +83,6 @@ public class MockContextBuilder implements ContextBuilder {
             );
         }
 
-        return null; // Unknown target returns null -> maps to 404
+        return null;
     }
 }

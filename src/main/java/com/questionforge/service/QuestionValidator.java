@@ -14,9 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-/**
- * Validates LLM output against JSON schema, question counts, difficulty, and grounding constraints.
- */
+
 @Component
 public class QuestionValidator {
 
@@ -40,9 +38,7 @@ public class QuestionValidator {
         }
     }
 
-    /**
-     * Validates raw JSON string from LLM against schema, count, difficulty, and grounding rules.
-     */
+    
     public ValidationResult validate(
         String rawLlmJson,
         ContextBundle bundle,
@@ -54,7 +50,6 @@ public class QuestionValidator {
             return ValidationResult.failure("LLM returned empty or null content");
         }
 
-        // Clean any accidental markdown code fence if present
         String cleanJson = rawLlmJson.trim();
         if (cleanJson.startsWith("```json")) {
             cleanJson = cleanJson.substring(7);
@@ -73,7 +68,6 @@ public class QuestionValidator {
             return ValidationResult.failure("Malformed JSON: " + e.getMessage());
         }
 
-        // 1. Schema check
         if (!rootNode.hasNonNull("questions") || !rootNode.get("questions").isArray()) {
             return ValidationResult.failure("Missing or non-array 'questions' field");
         }
@@ -84,7 +78,6 @@ public class QuestionValidator {
         JsonNode questionsNode = rootNode.get("questions");
         JsonNode answerKeysNode = rootNode.get("answerKeys");
 
-        // 2. Count check
         if (questionsNode.size() != expectedCount) {
             return ValidationResult.failure("Expected " + expectedCount + " questions but received " + questionsNode.size());
         }
@@ -92,7 +85,6 @@ public class QuestionValidator {
             return ValidationResult.failure("Expected " + expectedCount + " answerKeys matching questions but received " + answerKeysNode.size());
         }
 
-        // Parse lists
         List<Question> questions = new ArrayList<>();
         Map<String, Question> questionMap = new HashMap<>();
         for (int i = 0; i < questionsNode.size(); i++) {
@@ -145,8 +137,6 @@ public class QuestionValidator {
             answerKeys.add(new AnswerKey(qId, keyPoints, requiredSymbols, rationale));
         }
 
-        // 3. Grounding check
-        // Extract symbols with code from bundle vs forbidden symbols
         String groundingError = checkGrounding(bundle, questions, answerKeys);
         if (groundingError != null) {
             return ValidationResult.failure(groundingError);
@@ -160,12 +150,8 @@ public class QuestionValidator {
         return ValidationResult.success(new GeneratedQuestionSet(questions, answerKeys, promptVersion, warnings));
     }
 
-    /**
-     * Checks that questions and answer keys do not target dropped, truncated, or signature-only symbols.
-     * All requiredSymbols must be present in code-bearing bundle components.
-     */
+    
     public String checkGrounding(ContextBundle bundle, List<Question> questions, List<AnswerKey> answerKeys) {
-        // Collect forbidden symbols (dropped items, signature-only methods, null code)
         Set<String> forbiddenSymbols = new HashSet<>();
 
         if (bundle.droppedItems() != null) {
@@ -177,7 +163,6 @@ public class QuestionValidator {
             }
         }
 
-        // Check callees and callers for signatureOnly or null code
         List<MethodNode> connected = new ArrayList<>();
         if (bundle.callers() != null) connected.addAll(bundle.callers());
         if (bundle.callees() != null) connected.addAll(bundle.callees());
@@ -189,7 +174,6 @@ public class QuestionValidator {
             }
         }
 
-        // Check if any question text or answerKey requiredSymbols targets forbidden symbols
         for (Question q : questions) {
             for (String forbidden : forbiddenSymbols) {
                 if (forbidden.length() > 3 && q.text().contains(forbidden)) {
@@ -210,7 +194,7 @@ public class QuestionValidator {
             }
         }
 
-        return null; // Valid grounding
+        return null;
     }
 
     private String extractSimpleName(String methodId) {

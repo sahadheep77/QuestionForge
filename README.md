@@ -1,74 +1,65 @@
-# QuestionForge (Part 3)
+# QuestionForge
 
-QuestionForge is the automated interview question generator component of the code comprehension assessment platform. It takes a `ContextBundle` produced by Part 2 (`ContextBuilder`) for a target Java method and prompts an LLM via an OpenAI-compatible REST API to generate rigorous, grounded technical interview questions and evaluator answer keys.
-
----
-
-## 1. Architecture & End-to-End Flow
-
-```
-                      +-------------------+
-                      |   ContextBundle   |  (From Part 2 ContextBuilder)
-                      +---------+---------+
-                                |
-                                v
-                      +-------------------+
-                      |   PromptBuilder   |  - Encloses untrusted code in data tags
-                      |   (Template v1)   |  - Injects targetId, count, difficulty
-                      +---------+---------+
-                                |
-                                v
-                      +-------------------+
-                      |     LlmClient     |  - OpenAI-compatible REST or Fake client
-                      |   (/completions)  |  - Configurable timeout, temperature, model
-                      +---------+---------+
-                                |
-                                v
-                      +-------------------+
-                      | QuestionValidator |  - Schema & strict JSON check
-                      | (Grounding Guard) |  - Grounding violation detection
-                      +---------+---------+  - Truncated / signature-only checks
-                                |
-                   [Invalid]    |    [Valid]
-             +------------------+------------------+
-             |                                     |
-             v                                     v
-   +-------------------+                +----------------------+
-   | Retry Once via    |                | GeneratedQuestionSet |
-   | PromptBuilder     |                +----------+-----------+
-   +---------+---------+                           |
-             |                                     |
-      [Second Fail]                                v
-             |                          +----------------------+
-             v                          |  QuestionController  |
-        HTTP 502                        |   POST /questions    |
-      (Bad Gateway)                     +----------+-----------+
-                                                   |
-                                     (Hides answer keys unless
-                                        question-forge.debug=true)
-                                                   |
-                                                   v
-                                        HTTP 200 JSON Response
-```
+QuestionForge is the automated interview question generator and answer key creator for code comprehension assessment. It consumes a structured ContextBundle representing a Java method and its surrounding call graph, prompts an LLM through an OpenAI-compatible REST API, and deterministically validates that all generated questions and answer keys are strictly grounded in real, visible code.
 
 ---
 
-## 2. API Reference
+## The Problem Solved
 
-### `POST /questions`
+When evaluating whether an engineer or student genuinely understands code they wrote versus pasting snippets from AI or forums, generic questions like "Explain dependency injection" or "What is Spring Boot?" fail. Anyone can memorize those definitions.
 
-#### Request Payload
-```json
+QuestionForge inspects the actual code, callers, callees, and class context, generating deep technical interview questions that require understanding the execution path and design trade-offs of that exact codebase.
+
+---
+
+## How It Works
+
+1. Ingestion: Part 2 (ContextLens) supplies a ContextBundle containing the target method, enclosing class, caller nodes, callee nodes, and size-pruning metadata.
+2. Hardened Prompt Construction: PromptBuilder wraps the code inside XML boundaries (UNTRUSTED_STUDENT_CODE) and instructs the model to treat the content strictly as passive data, neutralizing prompt injection attempts.
+3. OpenAI-Compatible LLM Invocation: Calls an OpenAI-compatible /v1/chat/completions endpoint using Spring 6 RestClient. Works with OpenAI, Groq, or local inference engines like Ollama and vLLM with zero vendor-specific SDKs.
+4. Deterministic Grounding Enforcement: QuestionValidator parses the response and checks it against the actual bundle. If a question targets an omitted method, a signature-only interface, or dropped items, it is rejected as a hallucination.
+5. Single Corrective Retry: If the LLM produces invalid JSON or a grounding violation, QuestionGeneratorService feeds the exact validator error back to the LLM for one corrective retry before failing with HTTP 502 Bad Gateway.
+6. Separation of Concerns: The service generates candidate-facing Questions and private evaluator-facing AnswerKeys. The REST endpoint excludes answer keys by default to prevent data leakage.
+
+---
+
+## Question Types
+
+Every generated question maps to one of five technical dimensions:
+
+1. DESIGN_RATIONALE: Why a specific implementation structure or design was selected.
+2. CHANGE_IMPACT: What breaks or alters behavior if a connected dependency is modified.
+3. FLOW: How data and execution flow across callers, the target method, and downstream callees.
+4. EDGE_CASE: How the code behaves under null references, runtime failures, and boundary conditions.
+5. TRADE_OFF: What alternative architectural choices were possible and why this path was preferred.
+
+---
+
+## Technical Stack
+
+- Java 21 LTS: Records, pattern matching, immutable collections.
+- Spring Boot 3.3.4: WebMvc, Jackson Databind, Jakarta Validation.
+- HTTP Client: Spring 6 RestClient with configurable connect and read timeouts.
+- Testing: JUnit 5, Spring Boot Test, and FakeLlmClient (100 percent offline, zero external LLM calls).
+- Build: Apache Maven.
+
+---
+
+## API Reference
+
+### POST /questions
+
+Generates grounded interview questions for a target method.
+
+Request Body:
 {
   "targetId": "com.example.service.OrderService#processOrder(Long)",
   "depth": 1,
   "count": 3,
   "difficulty": "MEDIUM"
 }
-```
 
-#### Response Payload (`debug=false` by default)
-```json
+Response Body (Default Mode - Candidate Safe):
 {
   "questions": [
     {
@@ -82,23 +73,22 @@ QuestionForge is the automated interview question generator component of the cod
   "promptVersion": "v1.0.0",
   "warnings": []
 }
-```
-*Note: Evaluator-facing `answerKeys` are strictly hidden from candidate responses unless configured via `question-forge.debug=true`.*
+
+Answer keys containing grading criteria, required symbols, and rationale are kept server-side and omitted from candidate responses.
 
 ---
 
-## 3. Error Handling & HTTP Status Codes
+## Error Handling
 
-* **`400 Bad Request`**: Validation errors on request body (invalid difficulty, blank `targetId`, count < 1 or > 10).
-* **`404 Not Found`**: Target method not found in codebase (propagated from Part 2 `ContextBuilder`).
-* **`502 Bad Gateway`**: LLM returned unparseable JSON or grounding violations twice (after single corrective retry).
-* **`503 Service Unavailable`**: LLM request timed out or network connection failed.
+- 400 Bad Request: Invalid input parameters (depth, count, or difficulty).
+- 404 Not Found: Target method does not exist in the repository.
+- 502 Bad Gateway: Upstream LLM failed schema validation or grounding checks after retry.
+- 503 Service Unavailable: Upstream LLM request timed out or connection failed.
 
 ---
 
-## 4. Running Tests
+## Verification
 
-Tests run using `FakeLlmClient` and never invoke external LLM providers:
-```bash
+The entire test suite runs offline using FakeLlmClient to simulate timeouts, malformed JSON, retries, and grounding violations deterministically:
+
 mvn test
-```

@@ -8,10 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 
-/**
- * Fake implementation of LlmClient for deterministic, fast unit/integration testing.
- * Never makes external network calls.
- */
+
 public class FakeLlmClient implements LlmClient {
 
     private final Queue<Object> programmedResponses = new ArrayDeque<>();

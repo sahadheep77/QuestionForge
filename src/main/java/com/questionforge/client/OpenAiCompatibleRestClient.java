@@ -18,10 +18,7 @@ import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * Standard OpenAI-compatible REST API client using Spring 6 RestClient.
- * Compatible with OpenAI, Groq, Ollama, vLLM, and any endpoint exposing /v1/chat/completions.
- */
+
 public class OpenAiCompatibleRestClient implements LlmClient {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleRestClient.class);

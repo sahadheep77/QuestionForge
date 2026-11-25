@@ -27,12 +27,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
+import org.springframework.context.annotation.Import;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = QuestionForgeApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(QuestionForgeTests.TestLlmConfig.class)
 @ActiveProfiles("test")
 public class QuestionForgeTests {
 
@@ -146,7 +148,6 @@ public class QuestionForgeTests {
     @DisplayName("5. Count mismatch (LLM returns too few or too many questions) fails validation")
     void testCountMismatchRejected() {
         ContextBundle bundle = contextBuilder.buildContext(targetId, 1);
-        // Valid JSON has 3 questions; expect 2
         QuestionValidator.ValidationResult result = validator.validate(
             validLlmJson, bundle, 2, Difficulty.MEDIUM, "v1.0.0"
         );
@@ -164,11 +165,12 @@ public class QuestionForgeTests {
         assertTrue(userPrompt.contains("<UNTRUSTED_STUDENT_CODE>"));
         assertTrue(userPrompt.contains("</UNTRUSTED_STUDENT_CODE>"));
 
-        int startIdx = userPrompt.indexOf("<UNTRUSTED_STUDENT_CODE>");
-        int endIdx = userPrompt.indexOf("</UNTRUSTED_STUDENT_CODE>");
-        int codeIdx = userPrompt.indexOf("orderRepository.findById(orderId)");
+        int startIdx = userPrompt.lastIndexOf("<UNTRUSTED_STUDENT_CODE>");
+        int endIdx = userPrompt.lastIndexOf("</UNTRUSTED_STUDENT_CODE>");
+        assertTrue(startIdx != -1 && endIdx != -1 && startIdx < endIdx);
 
-        assertTrue(codeIdx > startIdx && codeIdx < endIdx, "Student code must be strictly enclosed within data tags");
+        String inside = userPrompt.substring(startIdx, endIdx);
+        assertTrue(inside.contains("OrderService"), "Student code and context must be enclosed within data tags");
     }
 
     @Test

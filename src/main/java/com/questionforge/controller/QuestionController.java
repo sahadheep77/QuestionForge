@@ -40,7 +40,7 @@ public class QuestionController {
 
         GenerateQuestionsResponse response = new GenerateQuestionsResponse(
             questionSet.questions(),
-            debug ? questionSet.answerKeys() : null, // Hide answer keys by default
+            debug ? questionSet.answerKeys() : null,
             questionSet.promptVersion(),
             questionSet.warnings()
         );

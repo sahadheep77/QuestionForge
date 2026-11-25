@@ -23,7 +23,7 @@ public record GenerateQuestionsRequest(
 ) {
     public GenerateQuestionsRequest {
         if (count == 0) {
-            count = 3; // Default 3 questions per request
+            count = 3;
         }
     }
 }

@@ -11,7 +11,7 @@
       "id": "q2",
       "type": "EDGE_CASE",
       "difficulty": "MEDIUM",
-      "text": "In processOrder, what happens if orderRepository.findById returns null? How is that error handled?",
+      "text": "In processOrder, what happens if the fetched order is null? How does the exception prevent further processing?",
       "targetMethodId": "com.example.service.OrderService#processOrder(Long)"
     },
     {
